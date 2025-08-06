@@ -1,0 +1,32 @@
+version: 0.20.0
+
+formatter: markdown table
+
+output:
+  file: README.md
+  mode: inject
+  begin-comment: <!-- BEGIN_TF_DOCS -->
+  end-comment: <!-- END_TF_DOCS -->
+
+sort:
+  enabled: true
+  by: name
+
+sections:
+  show:
+    - providers
+    - requirements
+    - resources
+    - inputs
+    - outputs
+
+inputs:
+  enabled: true
+  required: true
+
+settings:
+  indent: 4
+  escape: false
+  default: true
+  required: true
+  type: true
