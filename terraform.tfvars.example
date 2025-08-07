@@ -1,0 +1,18 @@
+# Copia este archivo como terraform.tfvars y ajusta los valores
+
+# Configuración básica
+aws_region = "us-east-1"
+notification_email = "tu-email@ejemplo.com"
+key_pair_name = "tu-keypair"
+
+# Configuración de red
+vpc_cidr = "10.0.0.0/16"
+public_subnet_cidr = "10.0.1.0/24"
+private_subnet_cidr = "10.0.2.0/24"
+
+# Configuración de instancias
+instance_type = "t3.micro"
+
+# Configuración de análisis
+analysis_frequency_minutes = 5
+flow_logs_retention_days = 30

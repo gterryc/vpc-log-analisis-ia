@@ -1,0 +1,18 @@
+# modules/processing/requirements.txt
+# Dependencias para la función Lambda de procesamiento de anomalías
+
+# AWS SDK - ya viene incluido en Lambda runtime
+# boto3>=1.34.0
+# botocore>=1.34.0
+
+# Utilidades para manejo de fechas y JSON
+python-dateutil>=2.8.2
+
+# Para manejo de logs estructurados (opcional)
+structlog>=23.1.0
+
+# Para validación de datos (opcional)
+pydantic>=2.0.0
+
+# Para retry logic (opcional)
+tenacity>=8.2.0
