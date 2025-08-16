@@ -1,4 +1,3 @@
-# modules/processing/requirements.txt
 # Dependencias para la función Lambda de procesamiento de anomalías
 
 # AWS SDK - ya viene incluido en Lambda runtime

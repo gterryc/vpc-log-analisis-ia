@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
-    bucket = "*****"
-    key    = "*****/terraform.tfstate"
+    bucket = "george-sandbox--terraform-us-east-1-state"
+    key    = "vpc-anomaly-detection/terraform.tfstate"
     region = "us-east-1"
   }
 }

@@ -1,0 +1,17 @@
+aws_region          = "us-east-1"
+vpc_cidr            = "10.0.0.0/16"
+public_subnet_cidr  = "10.0.1.0/24"
+private_subnet_cidr = "10.0.2.0/24"
+bucket_name         = "anomaly-detection-flow-logs-12051980"
+email               = "gterryc@gmail.com"
+# schedule_frequency_minutes = 5
+# enable_scheduled_analysis  = true
+# analysis_window_minutes    = 60
+# enable_dead_letter_queue   = true
+# enable_failure_monitoring  = true
+key_pair_name = "aws-demo"
+instance_type = "t3.micro"
+#enable_flow_logs           = true
+#flow_logs_retention_days   = 30
+# analysis_frequency_minutes = 5no
+# athena_query_timeout       = 300
