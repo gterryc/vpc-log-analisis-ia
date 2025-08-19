@@ -17,7 +17,7 @@ resource "aws_athena_workgroup" "anomaly_detection" {
     publish_cloudwatch_metrics_enabled = false
 
     result_configuration {
-      output_location = "s3://${var.bucket_name}-athena-results/"
+      output_location = "s3://${var.bucket_name}-athena-results/" 
     }
 
     bytes_scanned_cutoff_per_query = 1073741824 # 1GB limit
@@ -256,7 +256,7 @@ WHERE
   AND month = LPAD(CAST(month(current_date) AS varchar), 2, '0')
   AND day = LPAD(CAST(day(current_date) AS varchar), 2, '0')
 GROUP BY srcaddr, dstaddr
-HAVING SUM(bytes) > 100000000  -- 100 MB
+HAVING SUM(bytes) > 25000000    -- 25 MB
 ORDER BY total_bytes DESC
 LIMIT 10;
 EOF

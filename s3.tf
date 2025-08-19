@@ -5,6 +5,6 @@ data "aws_s3_bucket" "anomaly-detection-flow-logs" {
   bucket = "anomaly-detection-flow-logs-12051980"
 }
 
-# data "aws_s3_bucket" "anomaly-detection-athena-results" {
-#   bucket = "anomaly-detection-athena-results-12051980"
-# }
+data "aws_s3_bucket" "anomaly-detection-athena-results" {
+  bucket = "anomaly-detection-athena-results-12051980"
+}

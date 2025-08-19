@@ -38,7 +38,7 @@ locals {
         <p>Timestamp: $(date)</p>
       </body>
     </html>
-HTML
+    HTML
     
     # Script para generar tráfico normal
     cat > /home/ec2-user/generate_normal_traffic.sh << 'SCRIPT'
@@ -53,7 +53,7 @@ HTML
         nslookup google.com > /dev/null
         sleep $((RANDOM % 15 + 10))
     done
-SCRIPT
+    SCRIPT
     
     chmod +x /home/ec2-user/generate_normal_traffic.sh
     
@@ -154,7 +154,8 @@ PYTHON
 
     # Script de Data Exfiltration
     cat > /home/ec2-user/data_exfiltration.py << 'PYTHON'
-import requests
+#!/usr/bin/env python3
+import socket
 import time
 import random
 import sys
@@ -162,87 +163,351 @@ import sys
 def simulate_data_exfiltration(target, duration=300):
     print(f"Simulando exfiltración de datos hacia {target} por {duration} segundos")
     end_time = time.time() + duration
-    
+
     # Generar datos aleatorios grandes
     large_data = "X" * (1024 * 1024)  # 1MB de datos
-    
+
+    bytes_sent = 0
+    requests_count = 0
+
     while time.time() < end_time:
         try:
-            # Simular POST de datos grandes
-            requests.post(f"http://{target}/upload", data=large_data, timeout=1)
+            # CORREGIDO: Usar socket HTTP manual en lugar de requests
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(2)  # Timeout más largo
+            sock.connect((target, 80))
+
+            # Crear HTTP POST request manualmente
+            http_request = f"""POST /upload HTTP/1.1\r
+Host: {target}\r
+Content-Type: application/octet-stream\r
+Content-Length: {len(large_data)}\r
+Connection: close\r
+\r
+{large_data}"""
+
+            sock.send(http_request.encode())
+
+            # NUEVO: Intentar leer respuesta (aunque sea error 404)
+            try:
+                response = sock.recv(1024)
+                # print(f"Response: {response[:50]}...")  # Debug
+            except:
+                pass
+
+            sock.close()
+
+            bytes_sent += len(large_data)
+            requests_count += 1
+
+            # Mostrar progreso cada 10 requests
+            if requests_count % 10 == 0:
+                mb_sent = bytes_sent / (1024 * 1024)
+                print(f"Enviados: {requests_count} requests, {mb_sent:.1f} MB")
+
+        except ConnectionRefusedError:
+            print(f"Conexión rechazada a {target}:80 - continuando...")
+        except socket.timeout:
+            print("Timeout - continuando...")
+        except Exception as e:
+            # print(f"Error: {e}")  # Debug
+            pass
+
+        # CORREGIDO: Pausa más corta para generar más tráfico
+        time.sleep(random.uniform(0.5, 2.0))
+
+    mb_total = bytes_sent / (1024 * 1024)
+    print(f"Exfiltración completada: {requests_count} requests, {mb_total:.1f} MB total")
+
+# NUEVO: Función alternativa usando diferentes puertos
+def simulate_data_exfiltration_alt_ports(target, duration=300):
+    """Versión alternativa usando puertos comunes"""
+    print(f"Simulando exfiltración multi-puerto hacia {target} por {duration} segundos")
+    end_time = time.time() + duration
+
+    # Puertos donde podría haber servicios
+    ports = [80, 443, 22, 21]
+    data_chunk = "CONFIDENTIAL_DATA_" + "X" * (1024 * 100)  # 100KB chunks
+
+    bytes_sent = 0
+    connections = 0
+
+    while time.time() < end_time:
+        port = random.choice(ports)
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(1)
+            sock.connect((target, port))
+            sock.send(data_chunk.encode())
+            sock.close()
+
+            bytes_sent += len(data_chunk)
+            connections += 1
+
+            if connections % 20 == 0:
+                mb_sent = bytes_sent / (1024 * 1024)
+                print(f"Conexiones: {connections}, Datos: {mb_sent:.1f} MB")
+
         except:
             pass
-        time.sleep(random.randint(1, 5))
+
+        time.sleep(random.uniform(0.1, 1.0))
+
+    mb_total = bytes_sent / (1024 * 1024)
+    print(f"Exfiltración multi-puerto completada: {connections} conexiones, {mb_total:.1f} MB")
 
 if __name__ == "__main__":
-    target = sys.argv[1] if len(sys.argv) > 1 else "10.0.1.100"
-    simulate_data_exfiltration(target)
+    target = sys.argv[1] if len(sys.argv) > 1 else "10.0.2.100"
+    mode = sys.argv[2] if len(sys.argv) > 2 else "http"
+
+    print("=== DATA EXFILTRATION SIMULATOR ===")
+    print(f"Target: {target}")
+    print(f"Modo: {mode}")
+
+    if mode == "http":
+        simulate_data_exfiltration(target)
+    elif mode == "multi":
+        simulate_data_exfiltration_alt_ports(target)
+    else:
+        print("Uso: python3 data_exfiltration.py <target> [http|multi]")
 PYTHON
 
     # Script maestro para controlar ataques
     cat > /home/ec2-user/attack_controller.sh << 'SCRIPT'
 #!/bin/bash
 
-TARGET_IP="10.0.1.100"  # IP del servidor web
+TARGET_IP="10.0.2.120"  # IP del servidor web (ajusta según tu setup)
 
-echo "=== Controlador de Ataques para Demo ==="
-echo "Target: $TARGET_IP"
+# Colores para output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "$${BLUE}=== Controlador de Ataques para Demo ===$${NC}"
+echo -e "$${YELLOW}Target: $TARGET_IP$${NC}"
 echo ""
 echo "Opciones:"
-echo "1. Port Scan Attack"
-echo "2. DDoS Attack"
-echo "3. Data Exfiltration"
-echo "4. All Attacks (secuencial)"
-echo "5. Stop all attacks"
+echo -e "$${RED}1. Port Scan Attack$${NC}     - Escaneo masivo de puertos"
+echo -e "$${RED}2. DDoS Attack$${NC}          - Ataque de denegación de servicio"
+echo -e "$${RED}3. Data Exfiltration$${NC}    - Exfiltración de datos (HTTP)"
+echo -e "$${RED}4. Data Exfiltration Multi$${NC} - Exfiltración multi-puerto"
+echo -e "$${RED}5. All Attacks (secuencial)$${NC} - Todos los ataques"
+echo -e "$${GREEN}6. Stop all attacks$${NC}     - Detener todos los ataques"
+echo -e "$${BLUE}7. Status$${NC}               - Ver estado de ataques"
 
 case $1 in
     1|"port")
-        echo "Iniciando Port Scan Attack..."
+        echo -e "$${RED}🔍 Iniciando Port Scan Attack...$${NC}"
         python3 /home/ec2-user/port_scanner.py $TARGET_IP &
         echo $! > /tmp/port_scan.pid
+        echo -e "$${GREEN}✅ Port scan iniciado (PID: $(cat /tmp/port_scan.pid))$${NC}"
+        echo "💡 Para detener: $0 stop"
         ;;
     2|"ddos")
-        echo "Iniciando DDoS Attack..."
+        echo -e "$${RED}💥 Iniciando DDoS Attack...$${NC}"
         python3 /home/ec2-user/ddos_simulator.py $TARGET_IP &
         echo $! > /tmp/ddos.pid
+        echo -e "$${GREEN}✅ DDoS iniciado (PID: $(cat /tmp/ddos.pid))$${NC}"
+        echo "💡 Para detener: $0 stop"
         ;;
     3|"exfil")
-        echo "Iniciando Data Exfiltration..."
-        python3 /home/ec2-user/data_exfiltration.py $TARGET_IP &
+        echo -e "$${RED}📤 Iniciando Data Exfiltration (HTTP)...$${NC}"
+        echo -e "$${YELLOW}Objetivo: Transferir >25MB para activar detección$${NC}"
+        python3 /home/ec2-user/data_exfiltration.py $TARGET_IP http &
         echo $! > /tmp/exfil.pid
+        echo -e "$${GREEN}✅ Data exfiltration HTTP iniciado (PID: $(cat /tmp/exfil.pid))$${NC}"
+        echo "💡 Para detener: $0 stop"
         ;;
-    4|"all")
-        echo "Iniciando todos los ataques secuencialmente..."
+    4|"exfil-multi")
+        echo -e "$${RED}📤 Iniciando Data Exfiltration (Multi-puerto)...$${NC}"
+        echo -e "$${YELLOW}Modo: Múltiples puertos simultáneos$${NC}"
+        python3 /home/ec2-user/data_exfiltration.py $TARGET_IP multi &
+        echo $! > /tmp/exfil_multi.pid
+        echo -e "$${GREEN}✅ Data exfiltration multi-puerto iniciado (PID: $(cat /tmp/exfil_multi.pid))$${NC}"
+        echo "💡 Para detener: $0 stop"
+        ;;
+    5|"all")
+        echo -e "$${RED}🔥 Iniciando TODOS los ataques secuencialmente...$${NC}"
+        echo -e "$${YELLOW}Duración: 2 minutos cada uno (6 minutos total)$${NC}"
+        echo ""
+
         # Port scan por 2 minutos
+        echo -e "$${BLUE}[1/3] Port Scan Attack (2 min)...$${NC}"
         python3 /home/ec2-user/port_scanner.py $TARGET_IP &
         PORT_PID=$!
+        echo $PORT_PID > /tmp/port_scan.pid
         sleep 120
         kill $PORT_PID 2>/dev/null
-        
+        echo -e "$${GREEN}✅ Port scan completado$${NC}"
+
+        # Pausa entre ataques
+        echo -e "$${YELLOW}⏳ Pausa de 30 segundos...$${NC}"
+        sleep 30
+
         # DDoS por 2 minutos
+        echo -e "$${BLUE}[2/3] DDoS Attack (2 min)...$${NC}"
         python3 /home/ec2-user/ddos_simulator.py $TARGET_IP &
         DDOS_PID=$!
+        echo $DDOS_PID > /tmp/ddos.pid
         sleep 120
         kill $DDOS_PID 2>/dev/null
-        
-        # Data exfiltration por 2 minutos
-        python3 /home/ec2-user/data_exfiltration.py $TARGET_IP &
+        echo -e "$${GREEN}✅ DDoS completado$${NC}"
+
+        # Pausa entre ataques
+        echo -e "$${YELLOW}⏳ Pausa de 30 segundos...$${NC}"
+        sleep 30
+
+        # Data exfiltration por 3 minutos (más tiempo para generar volumen)
+        echo -e "$${BLUE}[3/3] Data Exfiltration (3 min)...$${NC}"
+        python3 /home/ec2-user/data_exfiltration.py $TARGET_IP http &
         EXFIL_PID=$!
-        sleep 120
+        echo $EXFIL_PID > /tmp/exfil.pid
+        sleep 180  # 3 minutos para garantizar >100MB
         kill $EXFIL_PID 2>/dev/null
+        echo -e "$${GREEN}✅ Data exfiltration completado$${NC}"
+
+        echo ""
+        echo -e "$${GREEN}🎉 Secuencia de ataques completada!$${NC}"
+        echo -e "$${YELLOW}💡 Tip: Espera 5-10 minutos para que Lambda detecte las anomalías$${NC}"
         ;;
-    5|"stop")
-        echo "Deteniendo todos los ataques..."
-        pkill -f "port_scanner.py"
-        pkill -f "ddos_simulator.py" 
-        pkill -f "data_exfiltration.py"
+    6|"stop")
+        echo -e "$${YELLOW}🛑 Deteniendo todos los ataques...$${NC}"
+
+        # Matar procesos específicos
+        if [ -f /tmp/port_scan.pid ]; then
+            PID=$(cat /tmp/port_scan.pid)
+            kill $PID 2>/dev/null && echo -e "$${GREEN}✅ Port scan detenido (PID: $PID)$${NC}"
+        fi
+
+        if [ -f /tmp/ddos.pid ]; then
+            PID=$(cat /tmp/ddos.pid)
+            kill $PID 2>/dev/null && echo -e "$${GREEN}✅ DDoS detenido (PID: $PID)$${NC}"
+        fi
+
+        if [ -f /tmp/exfil.pid ]; then
+            PID=$(cat /tmp/exfil.pid)
+            kill $PID 2>/dev/null && echo -e "$${GREEN}✅ Data exfiltration detenido (PID: $PID)$${NC}"
+        fi
+
+        if [ -f /tmp/exfil_multi.pid ]; then
+            PID=$(cat /tmp/exfil_multi.pid)
+            kill $PID 2>/dev/null && echo -e "$${GREEN}✅ Data exfiltration multi detenido (PID: $PID)$${NC}"
+        fi
+
+        # Cleanup general por si algo se escapó
+        pkill -f "port_scanner.py" 2>/dev/null
+        pkill -f "ddos_simulator.py" 2>/dev/null
+        pkill -f "data_exfiltration.py" 2>/dev/null
+
+        # Limpiar archivos PID
         rm -f /tmp/*.pid
+
+        echo -e "$${GREEN}✅ Todos los ataques detenidos$${NC}"
+        ;;
+    7|"status")
+        echo -e "$${BLUE}📊 Estado de Ataques Activos:$${NC}"
+        echo ""
+
+        # Verificar port scan
+        if [ -f /tmp/port_scan.pid ] && kill -0 $(cat /tmp/port_scan.pid) 2>/dev/null; then
+            echo -e "$${RED}🔍 Port Scan: ACTIVO (PID: $(cat /tmp/port_scan.pid))$${NC}"
+        else
+            echo -e "$${GREEN}🔍 Port Scan: INACTIVO$${NC}"
+        fi
+
+        # Verificar DDoS
+        if [ -f /tmp/ddos.pid ] && kill -0 $(cat /tmp/ddos.pid) 2>/dev/null; then
+            echo -e "$${RED}💥 DDoS: ACTIVO (PID: $(cat /tmp/ddos.pid))$${NC}"
+        else
+            echo -e "$${GREEN}💥 DDoS: INACTIVO$${NC}"
+        fi
+
+        # Verificar data exfiltration
+        if [ -f /tmp/exfil.pid ] && kill -0 $(cat /tmp/exfil.pid) 2>/dev/null; then
+            echo -e "$${RED}📤 Data Exfiltration: ACTIVO (PID: $(cat /tmp/exfil.pid))$${NC}"
+        else
+            echo -e "$${GREEN}📤 Data Exfiltration: INACTIVO$${NC}"
+        fi
+
+        # Verificar data exfiltration multi
+        if [ -f /tmp/exfil_multi.pid ] && kill -0 $(cat /tmp/exfil_multi.pid) 2>/dev/null; then
+            echo -e "$${RED}📤 Data Exfiltration Multi: ACTIVO (PID: $(cat /tmp/exfil_multi.pid))$${NC}"
+        else
+            echo -e "$${GREEN}📤 Data Exfiltration Multi: INACTIVO$${NC}"
+        fi
+
+        echo ""
+        echo -e "$${YELLOW}💡 Procesos Python activos:$${NC}"
+        ps aux | grep -E "(port_scanner|ddos_simulator|data_exfiltration)" | grep -v grep || echo "Ninguno"
+        ;;
+    "demo")
+        echo -e "$${BLUE}🎬 MODO DEMO - Secuencia optimizada para presentación$${NC}"
+        echo -e "$${YELLOW}Duración total: ~8 minutos$${NC}"
+        echo ""
+
+        echo -e "$${BLUE}[Demo 1/3] Port Scan (90 segundos)$${NC}"
+        python3 /home/ec2-user/port_scanner.py $TARGET_IP &
+        PORT_PID=$!
+        sleep 90
+        kill $PORT_PID 2>/dev/null
+        echo -e "$${GREEN}✅ Demo port scan completado$${NC}"
+
+        echo -e "$${YELLOW}⏳ Pausa para explicación (60 segundos)$${NC}"
+        sleep 60
+
+        echo -e "$${BLUE}[Demo 2/3] DDoS (90 segundos)$${NC}"
+        python3 /home/ec2-user/ddos_simulator.py $TARGET_IP &
+        DDOS_PID=$!
+        sleep 90
+        kill $DDOS_PID 2>/dev/null
+        echo -e "$${GREEN}✅ Demo DDoS completado$${NC}"
+
+        echo -e "$${YELLOW}⏳ Pausa para explicación (60 segundos)$${NC}"
+        sleep 60
+
+        echo -e "$${BLUE}[Demo 3/3] Data Exfiltration (180 segundos)$${NC}"
+        python3 /home/ec2-user/data_exfiltration.py $TARGET_IP http &
+        EXFIL_PID=$!
+        sleep 180
+        kill $EXFIL_PID 2>/dev/null
+        echo -e "$${GREEN}✅ Demo data exfiltration completado$${NC}"
+
+        echo ""
+        echo -e "$${GREEN}🎉 Demo completado!$${NC}"
+        echo -e "$${YELLOW}📱 Revisa tu email en 5-10 minutos para las alertas$${NC}"
         ;;
     *)
-        echo "Uso: $0 [1|2|3|4|5] o [port|ddos|exfil|all|stop]"
+        echo -e "$${RED}❌ Opción no válida$${NC}"
+        echo ""
+        echo -e "$${YELLOW}Uso:$${NC}"
+        echo "  $0 [1|2|3|4|5|6|7] o [port|ddos|exfil|exfil-multi|all|stop|status|demo]"
+        echo ""
+        echo -e "$${YELLOW}Ejemplos:$${NC}"
+        echo "  $0 port           # Port scan attack"
+        echo "  $0 exfil          # Data exfiltration HTTP"
+        echo "  $0 all            # Todos los ataques"
+        echo "  $0 demo           # Secuencia para demo"
+        echo "  $0 stop           # Detener todo"
+        echo "  $0 status         # Ver estado"
         exit 1
         ;;
 esac
+
+# Mostrar información adicional si no es stop o status
+if [[ ! "$1" =~ ^(6|stop|7|status)$ ]]; then
+    echo ""
+    echo -e "$${YELLOW}📋 Información útil:$${NC}"
+    echo "  • Target IP: $TARGET_IP"
+    echo "  • Ver estado: $0 status"
+    echo "  • Detener todo: $0 stop"
+    echo "  • Logs en tiempo real: tail -f /var/log/messages"
+    echo ""
+    echo -e "$${BLUE}🔍 Para monitorear tráfico:$${NC}"
+    echo "  • sudo netstat -tulpn | grep python"
+    echo "  • ss -tuln | grep python"
+fi
 SCRIPT
     
     chmod +x /home/ec2-user/attack_controller.sh
@@ -256,7 +521,8 @@ SCRIPT
 resource "aws_instance" "web_server" {
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = var.instance_type
-  iam_instance_profile   = "SSM_Manage_Instance"
+  #iam_instance_profile   = "aws-demo-role"
+  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
   key_name               = var.key_pair_name
   vpc_security_group_ids = [aws_security_group.web_server.id]
   subnet_id              = aws_subnet.private.id
@@ -280,7 +546,8 @@ resource "aws_instance" "web_server" {
 resource "aws_instance" "attack_simulator" {
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = var.instance_type
-  iam_instance_profile   = "SSM_Manage_Instance"
+  #iam_instance_profile   = "aws-demo-role"
+  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
   key_name               = var.key_pair_name
   vpc_security_group_ids = [aws_security_group.attack_simulator.id]
   subnet_id              = aws_subnet.public.id

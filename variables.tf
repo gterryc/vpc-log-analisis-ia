@@ -25,19 +25,6 @@ variable "private_subnet_cidr" {
   default     = "10.0.2.0/24"
 }
 
-# variable "enable_flow_logs" {
-#   description = "Habilitar VPC Flow Logs"
-#   type        = bool
-#   default     = true
-# }
-
-# variable "flow_logs_retention_days" {
-#   description = "Días de retención para Flow Logs"
-#   type        = number
-#   default     = 30
-# }
-
-
 ### Variables de S3 Bucket
 
 variable "bucket_name" {
@@ -55,6 +42,14 @@ variable "email" {
     condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.email))
     error_message = "El email debe tener un formato válido."
   }
+}
+
+# Variables Lambda
+
+variable "lambda_name" {
+  description = "Nombre de la función Lambda (para construir el nombre del log group)."
+  type        = string
+  default     = "anomaly-detection-function" 
 }
 
 # ### Variables Eventbridge
@@ -117,15 +112,10 @@ variable "ec2_iam_instance_profile" {
   default     = "SSM_Manage_Instance" # Este role se creo a mano y existe previamente en la cuenta
 }
 
-#####
-# variable "analysis_frequency_minutes" {
-#   description = "Frecuencia de análisis en minutos"
-#   type        = number
-#   default     = 5
-# }
+# Variables Bedrock
 
-# variable "athena_query_timeout" {
-#   description = "Timeout para queries de Athena en segundos"
-#   type        = number
-#   default     = 300
-# }
+variable "bedrock_model_id" {
+  description = "ID del modelo de Bedrock"
+  type        = string
+  default     = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+}

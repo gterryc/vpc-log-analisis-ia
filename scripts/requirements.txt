@@ -1,8 +1,8 @@
 # Dependencias para la función Lambda de procesamiento de anomalías
 
 # AWS SDK - ya viene incluido en Lambda runtime
-# boto3>=1.34.0
-# botocore>=1.34.0
+boto3>=1.34.0
+botocore>=1.34.0
 
 # Utilidades para manejo de fechas y JSON
 python-dateutil>=2.8.2
