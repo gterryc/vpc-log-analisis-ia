@@ -44,4 +44,4 @@ terraform.rc
 *.pem
 
 # Archivos reservados
-./scripts/lambda_backup.py
+scripts/lambda_backup.py
