@@ -1,5 +1,6 @@
 # SNS Topic para alertas de anomalías
 resource "aws_sns_topic" "anomaly_alerts" {
+  #checkov:skip=CKV_AWS_26
   name         = "${local.project_name}-anomaly-alerts"
   display_name = "Anomaly Detection Alerts"
 

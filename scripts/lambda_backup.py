@@ -549,3 +549,10 @@ def test_components():
             print(f"❌ Bedrock: {e}")
     else:
         print("⚠️ Bedrock: Not available")
+
+
+# ATHENA_DATABASE         vpc-traffic-anomaly-detection_flow_logs_db
+# ATHENA_RESULTS_BUCKET   anomaly-detection-flow-logs-12051980-athena-results
+# ATHENA_TABLE            vpc_flow_logs
+# BEDROCK_MODEL_ID        anthropic.claude-3-5-sonnet-20241022-v2:0
+# SNS_TOPIC_ARN           arn:aws:sns:us-east-1:730335323500:vpc-traffic-anomaly-detection-anomaly-alerts

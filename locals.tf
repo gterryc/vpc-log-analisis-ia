@@ -9,5 +9,4 @@ locals {
     Deployment  = "Terraform"
     Domain      = "georgeterry.cloud"
   }
-  #bucket_name = "${local.project_name}-flowlogs-${random_string.suffix.result}"
 }

@@ -1,4 +1,3 @@
- cat test-bedrock.py
 #!/usr/bin/env python3
 # Test standalone de Claude 3.5 Sonnet
 import boto3

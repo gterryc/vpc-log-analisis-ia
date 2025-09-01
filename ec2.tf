@@ -27,7 +27,7 @@ locals {
     yum install -y httpd
     systemctl start httpd
     systemctl enable httpd
-    
+
     # Crear contenido web simple
     cat > /var/www/html/index.html << 'HTML'
     <html>
@@ -39,7 +39,7 @@ locals {
       </body>
     </html>
     HTML
-    
+
     # Script para generar tráfico normal
     cat > /home/ec2-user/generate_normal_traffic.sh << 'SCRIPT'
     #!/bin/bash
@@ -48,15 +48,15 @@ locals {
         # Simular tráfico HTTP normal
         curl -s http://localhost/ > /dev/null
         sleep $((RANDOM % 10 + 5))
-        
+
         # Simular algunas consultas DNS
         nslookup google.com > /dev/null
         sleep $((RANDOM % 15 + 10))
     done
     SCRIPT
-    
+
     chmod +x /home/ec2-user/generate_normal_traffic.sh
-    
+
     # Ejecutar como servicio
     cat > /etc/systemd/system/normal-traffic.service << 'SERVICE'
 [Unit]
@@ -72,7 +72,7 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 SERVICE
-    
+
     systemctl daemon-reload
     systemctl enable normal-traffic
     systemctl start normal-traffic
@@ -84,7 +84,7 @@ SERVICE
     #!/bin/bash
     yum update -y
     yum install -y python3 python3-pip nmap
-    
+
     # Script de Port Scanning
     cat > /home/ec2-user/port_scanner.py << 'PYTHON'
 import socket
@@ -107,7 +107,7 @@ def scan_port(target, port):
 def port_scan_attack(target, duration=300):
     print(f"Iniciando port scan contra {target} por {duration} segundos")
     end_time = time.time() + duration
-    
+
     while time.time() < end_time:
         port = random.randint(1, 65535)
         threading.Thread(target=scan_port, args=(target, port)).start()
@@ -139,12 +139,12 @@ def ddos_thread(target, port, duration):
 
 def ddos_attack(target, port=80, threads=100, duration=300):
     print(f"Iniciando DDoS contra {target}:{port} con {threads} threads por {duration} segundos")
-    
+
     for i in range(threads):
         thread = threading.Thread(target=ddos_thread, args=(target, port, duration))
         thread.daemon = True
         thread.start()
-    
+
     time.sleep(duration)
 
 if __name__ == "__main__":
@@ -509,7 +509,7 @@ if [[ ! "$1" =~ ^(6|stop|7|status)$ ]]; then
     echo "  • ss -tuln | grep python"
 fi
 SCRIPT
-    
+
     chmod +x /home/ec2-user/attack_controller.sh
     chown ec2-user:ec2-user /home/ec2-user/*.py
     chown ec2-user:ec2-user /home/ec2-user/*.sh
@@ -521,8 +521,7 @@ SCRIPT
 resource "aws_instance" "web_server" {
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = var.instance_type
-  #iam_instance_profile   = "aws-demo-role"
-  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
+  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
   key_name               = var.key_pair_name
   vpc_security_group_ids = [aws_security_group.web_server.id]
   subnet_id              = aws_subnet.private.id
@@ -537,7 +536,7 @@ resource "aws_instance" "web_server" {
 
   depends_on = [
     aws_nat_gateway.main,
-    aws_route_table.private  # Si tienes route tables
+    aws_route_table.private
   ]
 
 }
@@ -546,8 +545,7 @@ resource "aws_instance" "web_server" {
 resource "aws_instance" "attack_simulator" {
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = var.instance_type
-  #iam_instance_profile   = "aws-demo-role"
-  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
+  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
   key_name               = var.key_pair_name
   vpc_security_group_ids = [aws_security_group.attack_simulator.id]
   subnet_id              = aws_subnet.public.id
@@ -587,15 +585,6 @@ resource "aws_security_group" "web_server" {
     description = "SSH from VPC"
     from_port   = 22
     to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/16"]
-  }
-
-  # Permitir todos los puertos para la demo (para simular port scanning)
-  ingress {
-    description = "All ports for demo"
-    from_port   = 1
-    to_port     = 65535
     protocol    = "tcp"
     cidr_blocks = ["10.0.0.0/16"]
   }
@@ -647,4 +636,3 @@ resource "aws_eip" "attack_simulator" {
     Name = "demo-aws-attack-simulator-eip"
   })
 }
-

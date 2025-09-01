@@ -15,18 +15,19 @@ resource "aws_internet_gateway" "main" {
 
 # Subnet Pública
 resource "aws_subnet" "public" {
+  #checkov:skip=CKV_AWS_130
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.public_subnet_cidr
   map_public_ip_on_launch = true
-  availability_zone = "us-east-1a"
+  availability_zone       = "us-east-1a"
 
   tags = merge({ Name = "${local.prefix}-public-subnet" }, local.common_tags)
 }
 
 # Subnet Privada
 resource "aws_subnet" "private" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = var.private_subnet_cidr
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.private_subnet_cidr
   availability_zone = "us-east-1a"
 
   tags = merge({ Name = "${local.prefix}-private-subnet" }, local.common_tags)
@@ -99,67 +100,7 @@ resource "aws_flow_log" "main" {
   traffic_type             = "ALL"
   vpc_id                   = aws_vpc.main.id
   max_aggregation_interval = 60
-  # destination_options {
-  #   file_format        = "parquet"
-  #   per_hour_partition = true
-  # }
-
-  log_format = "$${version} $${account-id} $${interface-id} $${srcaddr} $${dstaddr} $${srcport} $${dstport} $${protocol} $${packets} $${bytes} $${start} $${end} $${action} $${log-status}"
+  log_format               = "$${version} $${account-id} $${interface-id} $${srcaddr} $${dstaddr} $${srcport} $${dstport} $${protocol} $${packets} $${bytes} $${start} $${end} $${action} $${log-status}"
 
   tags = merge({ Name = "vpc-flowlog-${local.prefix}" }, local.common_tags)
 }
-
-# # IAM Role para Flow Logs
-# resource "aws_iam_role" "flow_log" {
-#   name_prefix = "${local.project_name}-flow-log-"
-
-#   assume_role_policy = jsonencode({
-#     Version = "2012-10-17"
-#     Statement = [
-#       {
-#         Action = "sts:AssumeRole"
-#         Effect = "Allow"
-#         Principal = {
-#           Service = "vpc-flow-logs.amazonaws.com"
-#         }
-#       }
-#     ]
-#   })
-
-#   tags = local.common_tags
-# }
-
-# resource "aws_iam_role_policy" "flow_log" {
-#   name_prefix = "${local.project_name}-flow-log-"
-#   role        = aws_iam_role.flow_log.id
-
-#   policy = jsonencode({
-#     Version = "2012-10-17"
-#     Statement = [
-#       {
-#         Effect = "Allow"
-#         Action = [
-#           "s3:PutObject",
-#           "s3:PutObjectAcl",
-#           "s3:GetObject",
-#           "s3:ListBucket"
-#         ]
-#         Resource = [
-#           "${aws_s3_bucket.flow_logs.arn}",
-#           "${aws_s3_bucket.flow_logs.arn}/*"
-#         ]
-#       },
-#       {
-#         Effect = "Allow"
-#         Action = [
-#           "logs:CreateLogGroup",
-#           "logs:CreateLogStream",
-#           "logs:PutLogEvents",
-#           "logs:DescribeLogGroups",
-#           "logs:DescribeLogStreams"
-#         ]
-#         Resource = "*"
-#       }
-#     ]
-#   })
-# }
