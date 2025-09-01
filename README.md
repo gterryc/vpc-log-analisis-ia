@@ -1,103 +1,198 @@
-# Arquitectura de Detección de Tráfico Anómalo en AWS
+# VPC Log Análisis IA
 
-## 🏗️ Diagrama de Arquitectura
+Infraestructura Terraform para detectar tráfico anómalo en VPC Flow Logs utilizando Inteligencia Artificial con Amazon Bedrock.
+
+![Diagrama de Arquitectura](./images/diagrama.png)
+
+## 📋 Descripción
+
+Este proyecto implementa una solución completa para el análisis inteligente de VPC Flow Logs en AWS. La infraestructura captura automáticamente el tráfico de red, almacena los logs en S3, los analiza con Athena y utiliza Amazon Bedrock (IA Generativa) para detectar anomalías y generar alertas inteligibles.
+
+### Características principales
+
+- **Captura automática**: VPC Flow Logs configurados para capturar todo el tráfico de red
+- **Almacenamiento optimizado**: Particionado por fecha en Amazon S3 para consultas eficientes
+- **Análisis SQL**: Queries programadas en Amazon Athena para detectar patrones anómalos
+- **IA Generativa**: Amazon Bedrock interpreta los datos y genera explicaciones claras
+- **Alertas inteligentes**: Sistema de notificaciones con SNS integrado
+- **Automatización**: EventBridge para ejecuciones programadas
+
+## 🏗️ Arquitectura
+
+La solución incluye tres entornos principales:
+
+1. **VPC de Aplicación**: Instancias EC2 que generan tráfico normal
+2. **VPC de Simulación**: Entorno controlado para pruebas
+3. **Attack Box**: Simulador de tráfico anómalo para testing
+
+### Flujo de datos
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│    VPC + EC2    │    │   VPC + EC2     │    │   Attack Box    │
-│   (Aplicación)  │────│  (Simulación)   │────│   (Simulador)   │
-│                 │    │                 │    │                 │
-└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
-          │                      │                      │
-          ▼                      ▼                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    VPC Flow Logs                               │
-│             (Captura todo el tráfico de red)                   │
-└─────────────────────┬───────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Amazon S3                                    │
-│           (Almacenamiento de Flow Logs)                        │
-│                Particionado por fecha                          │
-└─────────────────────┬───────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                 Amazon Athena                                  │
-│        (Análisis y consultas SQL de los logs)                  │
-│    • Detección de patrones anómalos                            │
-│    • Agregaciones por tiempo/IP/puerto                         │
-│    • Queries programadas                                       │
-└─────────────────────┬───────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                AWS Lambda                                      │
-│           (Procesador de Anomalías)                            │
-│    • Ejecuta queries de Athena                                 │
-│    • Procesa resultados                                        │
-│    • Invoca Bedrock para análisis                              │
-└─────────────────────┬───────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                Amazon Bedrock                                  │
-│              (IA Generativa)                                   │
-│    • Interpreta datos de tráfico                               │
-│    • Genera explicaciones claras                               │
-│    • Sugiere acciones correctivas                              │
-└─────────────────────┬───────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                Amazon SNS                                      │
-│            (Sistema de Alertas)                                │
-│    • Notificaciones por email                                  │
-│    • Integración con Slack/Teams                               │
-│    • Alertas estructuradas                                     │
-└─────────────────────┬───────────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              CloudWatch Events                                │
-│            (Automatización)                                    │
-│    • Triggers programados                                      │
-│    • Monitoreo del sistema                                     │
-│    • Métricas de rendimiento                                   │
-└─────────────────────────────────────────────────────────────────┘
+VPC Traffic → Flow Logs → S3 → Athena → Lambda → Bedrock → SNS → Alertas
 ```
 
-## 🔧 Componentes Principales
+El diagrama completo de la arquitectura se encuentra en la carpeta `images/`.
 
-### 1. **Capa de Generación de Datos**
-- **VPC con EC2**: Instancias que generan tráfico normal
-- **Simulador de Ataques**: Script que genera tráfico anómalo
-- **VPC Flow Logs**: Captura automática de metadatos de red
+## 🚀 Inicio Rápido
 
-### 2. **Capa de Almacenamiento**
-- **S3 Bucket**: Almacena los Flow Logs con particionado por fecha
-- **Estructura optimizada**: Para consultas eficientes en Athena
+### Prerrequisitos
 
-### 3. **Capa de Análisis**
-- **Amazon Athena**: Motor de consultas SQL serverless
-- **Glue Data Catalog**: Metadatos y esquemas
-- **Queries de detección**: Patrones predefinidos de anomalías
+- Terraform >= 1.0
+- AWS CLI configurado
+- Permisos IAM para crear recursos VPC, S3, Athena, Lambda, Bedrock y SNS
+- Par de claves EC2 existente
 
-### 4. **Capa de Procesamiento**
-- **Lambda Functions**: Orquestación y procesamiento
-- **EventBridge**: Programación de ejecuciones
+### Instalación
 
-### 5. **Capa de IA**
-- **Amazon Bedrock**: Interpretación inteligente de resultados
-- **Modelos LLM**: Claude/Titan para generar explicaciones
+1. Clona el repositorio:
+```bash
+git clone https://github.com/gterryc/vpc-log-analisis-ia.git
+cd vpc-log-analisis-ia
+```
 
-### 6. **Capa de Alertas**
-- **Amazon SNS**: Sistema de notificaciones
-- **CloudWatch**: Métricas y dashboards
+2. Inicializa Terraform:
+```bash
+terraform init
+```
+
+3. Copia el archivo de variables de ejemplo:
+```bash
+cp terraform.tfvars.example terraform.tfvars
+```
+
+4. Edita las variables según tu entorno:
+```bash
+# Ejemplo de configuración mínima
+aws_region = "us-east-1"
+key_pair_name = "my-keypair"
+bucket_name = "mi-empresa-vpc-flowlogs-2024"
+environment = "dev"
+```
+
+5. Aplica la infraestructura:
+```bash
+terraform plan
+terraform apply
+```
+
+## ⚙️ Configuración
+
+### Variables principales
+
+| Variable | Descripción | Tipo | Valor por defecto |
+|----------|-------------|------|-------------------|
+| `aws_region` | Región de AWS | `string` | `"us-east-1"` |
+| `bedrock_model_id` | Modelo de Bedrock para IA | `string` | `"anthropic.claude-3-5-sonnet-20240620-v1:0"` |
+| `bucket_name` | Nombre del bucket S3 | `string` | **Requerido** |
+| `environment` | Entorno de despliegue | `string` | **Requerido** |
+| `key_pair_name` | Par de claves EC2 | `string` | **Requerido** |
+
+### Configuración avanzada
+
+```hcl
+# Personalización de VPC
+vpc_cidr = "10.0.0.0/16"
+public_subnet_cidr = "10.0.1.0/24"
+private_subnet_cidr = "10.0.2.0/24"
+
+# Configuración de Lambda
+lambda_name = "anomaly-detection-function"
+instance_type = "t3.micro"
+```
+
+## 🔍 Uso
+
+### Monitoreo de anomalías
+
+Una vez desplegada la infraestructura:
+
+1. **Los VPC Flow Logs se capturan automáticamente** y se almacenan en S3
+2. **Lambda ejecuta análisis periódicos** utilizando queries predefinidas en Athena
+3. **Bedrock analiza los resultados** y genera explicaciones en lenguaje natural
+4. **SNS envía alertas** cuando se detectan anomalías
+
+### Consultas personalizadas
+
+Puedes ejecutar tus propias consultas en Athena:
+
+```sql
+SELECT sourceaddr, destaddr, destport, action, COUNT(*) as count
+FROM vpc_flow_logs
+WHERE action = 'REJECT'
+GROUP BY sourceaddr, destaddr, destport, action
+ORDER BY count DESC
+LIMIT 10;
+```
+
+### Logs y monitoreo
+
+- **CloudWatch Logs**: Logs de Lambda y ejecuciones
+- **CloudWatch Metrics**: Métricas de rendimiento del sistema
+- **SNS Topics**: Configurables para Slack, email o otros servicios
+
+## 📊 Ejemplos de detección
+
+El sistema puede detectar automáticamente:
+
+- Escaneo de puertos
+- Intentos de conexión a servicios no autorizados
+- Tráfico desde IPs sospechosas
+- Patrones de tráfico anómalos
+- Intentos de exfiltración de datos
+
+## 🛠️ Desarrollo
+
+### Estructura del proyecto
+
+```
+.
+├── main.tf                 # Configuración principal
+├── variables.tf            # Definición de variables
+├── outputs.tf             # Outputs del módulo
+├── versions.tf            # Versiones de providers
+├── images/                # Diagramas y documentación visual
+│   └── architecture-diagram.png
+├── examples/              # Ejemplos de uso
+└── docs/                  # Documentación adicional
+```
+
+### Contribuir
+
+1. Fork el repositorio
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+## 🔒 Seguridad
+
+- Todos los buckets S3 incluyen cifrado
+- Roles IAM con permisos mínimos necesarios
+- VPC con subnets públicas y privadas
+- Security Groups restrictivos por defecto
+
+## 📚 Documentación
+
+- [AWS VPC Flow Logs](https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html)
+- [Amazon Athena](https://docs.aws.amazon.com/athena/)
+- [Amazon Bedrock](https://docs.aws.amazon.com/bedrock/)
+- [Terraform AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
+
+## 🆘 Soporte
+
+Si encuentras algún problema o tienes preguntas:
+
+1. Busca en los [Issues existentes](https://github.com/gterryc/vpc-log-analisis-ia/issues)
+2. Crea un nuevo Issue si es necesario
+3. Mándame un email a gterryc@gmail.com
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
 
 ---
 
+## Terraform Documentation
 
 <!-- BEGIN_TF_DOCS -->
 #### Requirements
@@ -187,3 +282,7 @@
 | <a name="output_architecture_summary"></a> [architecture_summary](#output_architecture_summary) | Resumen completo de la arquitectura desplegada |
 | <a name="output_demo_instances"></a> [demo_instances](#output_demo_instances) | Información de las instancias para la demo |
 <!-- END_TF_DOCS -->
+
+---
+
+⭐ **¡Dale una estrella al repo si te resulta útil!**
